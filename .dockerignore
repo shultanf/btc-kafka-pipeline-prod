@@ -1,0 +1,2 @@
+__pycache__/
+*.py[cod]  # Also ignores .pyc, .pyo, .pyd files

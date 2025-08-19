@@ -100,8 +100,8 @@ class resilientConsumer:
                     self.batch = []
                     return False
             else:
-                logger.error(f"Current batch len is ({len(self.batch)}/{self.batch_size}). Waiting for more message . . .")
-            
+                logger.info(f"Current batch len is ({len(self.batch)}/{self.batch_size}). Waiting for more message . . .")
+
 
         # Logger.error when there's exception
         except json.JSONDecodeError as e:
@@ -118,7 +118,6 @@ def main():
     consumer = resilientConsumer(bootstrap_server=[f"{os.getenv('PORT_C_KAFKA')}:{os.getenv('PORT_CLIENT')}"],
                                  topic_name=os.getenv('TOPIC_NAME'),
                                  bucket_name=os.getenv('BUCKET_NAME'))
-    
     # Send data to S3 bucket
     for message in consumer:
         logger.info(f"message received: {message.value}")
@@ -126,8 +125,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-        
 
 
 

@@ -1,0 +1,43 @@
+# OS junk files
+.DS_Store
+Thumbs.db
+
+# Editor backup files
+*.swp
+*.swo
+*~
+*.save
+*.bak
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Docker
+*.pid
+*.seed
+*.pid.lock
+docker-compose.override.yml
+.env.docker
+
+# IDEs/editors
+.vscode/
+.idea/
+*.iml
+
+# Build outputs
+dist/
+build/
+out/
+

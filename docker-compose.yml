@@ -19,9 +19,9 @@ services:
       # KRaft Mode Essentials
       KAFKA_KRAFT_ENABLED: "true"
       KAFKA_NODE_ID: "1"
-      CLUSTER_ID: "MqU4lyjnRpitld3Iu82pYA"
+      CLUSTER_ID: ${CLUSTER_ID}
       # Networking
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://172.31.12.153:9092"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${HOST}:${PORT}
       KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093"
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
@@ -51,16 +51,3 @@ services:
       PYTHONUNBUFFERED: "1"
     logging:
       driver: "json-file"
-
-# For production, producer is using AWS Lambda
-  # producer:
-  #   build: .
-  #   command: sh -c "wait-broker.sh && python src/producer.py"
-  #   volumes:
-  #     - ./.env:/app/.env
-  #     - kafka-services-logs:/app/logs
-  #   environment:
-  #     KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-  #     PYTHONUNBUFFERED: "1"
-  #   logging:
-  #     driver: "json-file"

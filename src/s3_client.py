@@ -58,8 +58,8 @@ class S3Uploader:
                 self.client.put_object(
                     Bucket=self.bucket_name,
                     Key=key,
-                    Body=json.dumps(batch),
-                    ContentType='application/json'
+                    Body=batch,
+                    ContentType='application/octet-stream' # Default
                 )
                 self.logger.info(f"Uploaded to S3: s3://{self.bucket_name}/{key}")
                 return True
@@ -77,7 +77,7 @@ class S3Uploader:
                     time.sleep(2 ** attempt)  # Exponential backoff
             
             except Exception as e:
-                self.logger.error(f"Unexpected error uploading {key}: {str(e)}")
+                self.logger.error(f"Unexpected error while uploading to S3: s3://{self.bucket_name}/{key}")
                 return False
 
         self.logger.error(self.logger.error(f"Max attempt reached ({attempt}/{self.max_retries}) for key: {key}"))

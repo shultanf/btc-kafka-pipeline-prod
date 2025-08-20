@@ -4,7 +4,6 @@ from kafka import KafkaConsumer, KafkaProducer
 from kafka.errors import KafkaError
 from time import sleep
 import json
-#from json import dumps, loads
 import time
 import logging
 from datetime import datetime, timezone
@@ -13,36 +12,24 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 from s3_client import S3Uploader
+import io
 
-"""
-Program Flow
-Received data -> Batch data -> Send to S3 bucket
-
-- Receive data from kafka producer
-- Batch data in 15 records
-- Use the function made to send the batch data to S3 bucket
-"""
-
-# Loads variables from .env
-#env_path = Path(__file__).resolve().parent
-#load_dotenv(dotenv_path=env_path)
 load_dotenv('/app/.env')
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler()]
 )
-logger = logging.getLogger('kafka-consumer')
+logger = logging.getLogger('kafka-consumer-1')
 logging.info("Starting kafka consumer 1 . . .")
 
 class resilientConsumer:
-    def __init__(self, bootstrap_server, topic_name, bucket_name):
+    def __init__(self, host, port, topic_name, bucket_name):
         # Kafka server
         self.topic_name=topic_name
-        self.bootstrap_servers=bootstrap_server
-        
+        self.host=host
+        self.port=port
         # Batching
         self.batch = []
         self.batch_size = 15
@@ -52,76 +39,70 @@ class resilientConsumer:
         # S3 upload func
         self.bucket_name = bucket_name
         self.s3_uploader = S3Uploader(bucket_name=bucket_name) # S3 uploader
-
+        # Create consumer object
         self.consumer = self._create_consumer()
 
     def __iter__(self):
-        """Make the consumer iterable by delegating to the Kafka consumer"""
         return self.consumer.__iter__()
     
-    def safe_deserializer(self, message):
+    def safeDeserialization(self, message):
         try:
             return json.loads(message.decode('utf-8')) if message else None
         except (UnicodeDecodeError, json.JSONDecodeError) as e:
             logger.error(f"Skipping bad message (raw byte: {message!r}).")
-            return None  # Continue processing
+            return None 
     
     def _create_consumer(self):
         return KafkaConsumer(
             self.topic_name,
-            bootstrap_servers=self.bootstrap_servers,
-            value_deserializer=lambda x: json.loads(x.decode('utf-8')), # for every value received (json:str), convert to python object
+            bootstrap_servers=[f"{self.host}:{self.port}"],
+            value_deserializer=self.safeDeserialization, 
             auto_offset_reset='latest',
             group_id="my-group-1",
             enable_auto_commit=False
         )
-    def to_bucket(self, message):
+    def isTimetoFlush(self):
+        if not hasattr(self, "last_flush_time"):
+            self.last_flush_time = datetime.now(timezone.utc)
+            return False
+        now = datetime.now(timezone.utc)
+        if (now - self.last_flush_time).total_seconds() >= 600:
+            self.last_flush_time = datetime.now(timezone.utc)
+            return True
+        return False
+    
+    def toBucket(self, message:dict):
         logger.info("Message received.",extra={"message_value":str(message)})
-        try:
-            # Batch data
-            self.batch.append(message)
+        self.batch.append(message)
+
+        if len(self.batch) >= self.batch_size or self.isTimetoFlush():
+            # Convert json list into parquet
+            df = pd.DataFrame(self.batch)
+            buffer = io.BytesIO()
+            df.to_parquet(buffer, engine="pyarrow", index=False)
 
             # Create key
             utc_now = str(datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S%f")[:-3])
-            key = f"bitcoin-hist-data/btc_kafka-consumer_{utc_now}.json"
+            key = f"{self.bucket_name}/batch_len={len(self.batch)}_{utc_now}.parquet"
 
-            # Upload batch to S3
-            if len(self.batch) == self.batch_size:
-                logger.info(f"Current batch len is ({len(self.batch)}/{self.batch_size}). Uploading to S3 . . .")
-                success = self.s3_uploader.upload_batch(self.batch, key=key)
+            # Upload to S3
+            self.s3_uploader.upload_batch(buffer.getvalue(), key=key)
+            self.batch = []
 
-                if success:
-                    self.batch = []
-                    logger.info(f"Batch upload complete.")
-                    return True
-                else:
-                    logger.error("Batch upload failed.")
-
-                    self.batch = []
-                    return False
-            else:
-                logger.info(f"Current batch len is ({len(self.batch)}/{self.batch_size}). Waiting for more message . . .")
-
-
-        # Logger.error when there's exception
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid message format: {e}")
-        except KeyError as e:
-            logger.error(f"Missing required field in message: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error in to_bucket: {e}")
-
-        return False
+        else:
+            logger.info(f"Batch not ready yet ({len(self.batch)}/{self.batch_size}).")
+            return None
 
 def main():
     # Create consumer object
-    consumer = resilientConsumer(bootstrap_server=[f"{os.getenv('PORT_C_KAFKA')}:{os.getenv('PORT_CLIENT')}"],
-                                 topic_name=os.getenv('TOPIC_NAME'),
-                                 bucket_name=os.getenv('BUCKET_NAME'))
+    consumer = resilientConsumer(host=os.environ['HOST'],
+                                 port=os.environ['PORT'],
+                                 topic_name=os.environ['TOPIC_NAME'],
+                                 bucket_name=os.environ['BUCKET_NAME'])
     # Send data to S3 bucket
     for message in consumer:
         logger.info(f"message received: {message.value}")
-        consumer.to_bucket(message=message.value)
+        consumer.toBucket(message=message.value)
 
 if __name__ == "__main__":
     main()

@@ -74,9 +74,10 @@ class resilientConsumer:
     
     def toBucket(self, message:dict):
         logger.info("Message received.",extra={"message_value":str(message)})
-        self.batch.append(message)
 
         if len(self.batch) >= self.batch_size or self.isTimetoFlush():
+            if len(self.batch) >= self.batch_size:
+                logger.info(f"Batch is ready! ({len(self.batch)}/{self.batch_size}).")
             # Convert json list into parquet
             df = pd.DataFrame(self.batch)
             buffer = io.BytesIO()
@@ -89,9 +90,11 @@ class resilientConsumer:
             # Upload to S3
             self.s3_uploader.upload_batch(buffer.getvalue(), key=key)
             self.batch = []
+            self.batch.append(message)
 
         else:
             logger.info(f"Batch not ready yet ({len(self.batch)}/{self.batch_size}).")
+            self.batch.append(message)
             return None
 
 def main():

@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 from s3_client import S3Uploader
 import io
+import pyarrow
 
 load_dotenv('/app/.env')
 

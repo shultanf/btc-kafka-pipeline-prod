@@ -64,38 +64,49 @@ class resilientConsumer:
         )
     def isTimetoFlush(self):
         if not hasattr(self, "last_flush_time"):
-            self.last_flush_time = datetime.now(timezone.utc)
+            self.last_flush_time = time.monotonic()
             return False
-        now = datetime.now(timezone.utc)
-        if (now - self.last_flush_time).total_seconds() >= 600:
-            self.last_flush_time = datetime.now(timezone.utc)
-            return True
-        return False
-    
-    def toBucket(self, message:dict):
-        logger.info("Message received.",extra={"message_value":str(message)})
+        now = time.monotonic()
+        return (now - self.last_flush_time) >= 300
 
+    
+    def toBucket(self, message: dict):
+        # Only flush existing batch
         if len(self.batch) >= self.batch_size or self.isTimetoFlush():
-            if len(self.batch) >= self.batch_size:
-                logger.info(f"Batch is ready! ({len(self.batch)}/{self.batch_size}).")
-            # Convert json list into parquet
+            if self.batch:  # flush only if not empty
+                df = pd.DataFrame(self.batch)
+                buffer = io.BytesIO()
+                df.to_parquet(buffer, engine="pyarrow", index=False)
+                buffer.seek(0)
+
+                utc_now = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S%f")[:-3]
+                key = f"batch_len={len(self.batch)}_{utc_now}.parquet"
+
+                self.s3_uploader.upload_batch(buffer, key=key)
+                logger.info(f"Flushed {len(self.batch)} messages to {key}")
+
+                self.batch = []
+                self.last_flush_time = datetime.now(timezone.utc)
+
+        # Always append *after* flushing
+        self.batch.append(message)
+        if len(self.batch) >= self.batch_size:
             df = pd.DataFrame(self.batch)
             buffer = io.BytesIO()
             df.to_parquet(buffer, engine="pyarrow", index=False)
+            buffer.seek(0)
 
-            # Create key
-            utc_now = str(datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S%f")[:-3])
+            utc_now = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S%f")[:-3]
             key = f"batch_len={len(self.batch)}_{utc_now}.parquet"
 
-            # Upload to S3
-            self.s3_uploader.upload_batch(buffer.getvalue(), key=key)
-            self.batch = []
-            self.batch.append(message)
+            self.s3_uploader.upload_batch(buffer, key=key)
+            logger.info(f"Flushed {len(self.batch)} messages to {key}")
 
-        else:
-            logger.info(f"Batch not ready yet ({len(self.batch)}/{self.batch_size}).")
-            self.batch.append(message)
-            return None
+            self.batch = []
+            self.last_flush_time = datetime.now(timezone.utc)
+
+        logger.info(f"Batch status: {len(self.batch)}/{self.batch_size}")
+
 
 def main():
     # Create consumer object

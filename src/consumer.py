@@ -85,7 +85,7 @@ class resilientConsumer:
 
             # Create key
             utc_now = str(datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S%f")[:-3])
-            key = f"{self.bucket_name}/batch_len={len(self.batch)}_{utc_now}.parquet"
+            key = f"batch_len={len(self.batch)}_{utc_now}.parquet"
 
             # Upload to S3
             self.s3_uploader.upload_batch(buffer.getvalue(), key=key)

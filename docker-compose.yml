@@ -11,10 +11,11 @@ services:
       - "9092:9092"  # Client connections
       - "9093:9093"  # Controller connections
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
-      interval: 5s
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:9092"]
+      interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 5
+      start_period: 30s
     environment:
       # KRaft Mode Essentials
       KAFKA_KRAFT_ENABLED: "true"

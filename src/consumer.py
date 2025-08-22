@@ -86,7 +86,7 @@ class resilientConsumer:
                 logger.info(f"Flushed {len(self.batch)} messages to {key}")
 
                 self.batch = []
-                self.last_flush_time = datetime.now(timezone.utc)
+                self.last_flush_time = time.monotonic()
 
         # Always append *after* flushing
         self.batch.append(message)
@@ -103,7 +103,7 @@ class resilientConsumer:
             logger.info(f"Flushed {len(self.batch)} messages to {key}")
 
             self.batch = []
-            self.last_flush_time = datetime.now(timezone.utc)
+            self.last_flush_time = time.monotonic()
 
         logger.info(f"Batch status: {len(self.batch)}/{self.batch_size}")
 

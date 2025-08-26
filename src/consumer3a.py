@@ -151,17 +151,3 @@ class kafkaConsumerToS3:
 if __name__ == "__main__":
     consumer = kafkaConsumerToS3()
     consumer.run()
-
-
-                        
-            
-        
-
-            
-
-
-    
-
-
-        
-

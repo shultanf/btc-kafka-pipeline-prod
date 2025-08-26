@@ -20,7 +20,7 @@ services:
       # KRaft Mode Essentials
       KAFKA_KRAFT_ENABLED: "true"
       KAFKA_NODE_ID: "1"
-      CLUSTER_ID: "my-cluster-1"
+      CLUSTER_ID: "MqU4lyjnRpitld3Iu82pYA"
       # Networking
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${HOST}:${PORT}
       KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093"

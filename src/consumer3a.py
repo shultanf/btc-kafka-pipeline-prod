@@ -118,11 +118,22 @@ class kafkaConsumerToS3:
         self.consumer.close()
         self.running = False
 
+    def consumer_metadata(self):
+        metadata = self.consumer.list_topics(timeout=10)
+        logger.info("Connected to cluster:")
+        logger.info(f"Cluster ID: {metadata.cluster_id}")
+        logger.info(f"Brokers: {metadata.brokers}")
+
+        logger.info("\nAvailable topics:")
+        for t in metadata.topics.keys():
+            logger.info(f" - {t}")
+
     def run(self):
         try:
             while self.running:
                 try:
                     msg = self.consumer.poll(1.0)
+                    self.consumer_metadata() # Check metadata
                     if msg is None:
                         continue
                     if msg.error():
@@ -130,7 +141,7 @@ class kafkaConsumerToS3:
                             continue
                         else:
                             raise KafkaException(msg.error()) # Raised exception will be catched by the "except:" block.
-                    
+
                     try:
                         record = json.loads(msg.value().decode('utf-8'))
                     except Exception as e:

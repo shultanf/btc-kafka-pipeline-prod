@@ -40,7 +40,8 @@ FORCE_FLUSH_INTERVAL = 900 # In seconds
 class kafkaConsumerToS3:
     def __init__(self):
         # Confluent consumer
-        self.consumer = Consumer(CONSUMER_CONF).subscribe([TOPIC])
+        self.consumer = Consumer(CONSUMER_CONF)
+        self.consumer.subscribe([TOPIC])
 
         # AWS S3
         self.s3 = boto3.client("s3", region_name=AWS_REGION)
@@ -60,14 +61,14 @@ class kafkaConsumerToS3:
         signal.signal(signal.SIGTERM, self._shutdown)
 
     def _get_window_start(self, ts:datetime) -> datetime:
-        floored_ts = ts - (ts % WINDOW_MINUTES)
+        floored_ts = ts.minute - (ts.minute % WINDOW_MINUTES)
         return ts.replace(minute=floored_ts, second=0, microsecond=0)
     
     def _upload_to_s3(self, messages, window_start, symbol):
         if not messages:
             return
         key = f"{symbol}/{window_start.strftime('%Y%m%dT%H%M')}.jsonl"
-        buffer = io.StringIO
+        buffer = io.StringIO()
 
         for msg in messages:
             buffer.write(json.dumps(msg) + "\n")
@@ -115,38 +116,43 @@ class kafkaConsumerToS3:
         self.running = False
         self._flush_expire_windows()
         self.consumer.close()
-        sys.exit(0)
+        self.running = False
 
     def run(self):
-        while self.running:
-            try:
-                msg = self.consumer.poll(1.0)
-                if msg in None:
-                    continue
-                if msg.error():
-                    if msg.error().code() == KafkaError._PARTITION_EOF:
-                        continue
-                    else:
-                        raise KafkaException(msg.error()) # Raised exception will be catched by the "except:" block.
-                
+        try:
+            while self.running:
                 try:
-                    record = json.loads(msg.value().encode('utf-8'))
+                    msg = self.consumer.poll(1.0)
+                    if msg is None:
+                        continue
+                    if msg.error():
+                        if msg.error().code() == KafkaError._PARTITION_EOF:
+                            continue
+                        else:
+                            raise KafkaException(msg.error()) # Raised exception will be catched by the "except:" block.
+                    
+                    try:
+                        record = json.loads(msg.value().decode('utf-8'))
+                    except Exception as e:
+                        logger.error("Failed to deserialize message.", exc_info=e)
+
+                    ts = datetime.fromisoformat(record["date"])
+                    ts_floored = self._get_window_start(ts)
+                    symbol = record["slug"]
+
+                    self.windows[ts_floored][symbol].append(record)
+
+                    self._flush_expire_windows()
+
                 except Exception as e:
-                    logger.error("Failed to deserialize message.", exc_info=e)
+                    logger.error("Error while consuming messages", exc_info=e)
 
-                ts = record["date"]
-                ts_floored = self._get_window_start(ts)
-                symbol = record["slug"]
-
-                self.windows[ts_floored][symbol].append(record)
-
-                self._flush_expire_windows()
-
-            except Exception as e:
-                logger.error("Unexpected error")
-            finally:
-                self._flush_expire_windows(force=True)
-                self.consumer.close()
+        except Exception as e:
+            logger.error("Fata error in consumer loop.", exc_info=e)
+        finally:
+            logger.info("Closing consumer gracefully...")
+            self._flush_expire_windows(force=True)
+            self.consumer.close()
 
 if __name__ == "__main__":
     consumer = kafkaConsumerToS3()

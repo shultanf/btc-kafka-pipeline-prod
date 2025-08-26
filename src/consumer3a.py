@@ -34,14 +34,13 @@ S3_PREFIX = ""
 # Batching Config
 WINDOW_MINUTES = 15 # In minutes
 FLUSH_DELAY = 60 # In seconds
-FORCE_FLUSH_INTERVAL = 900 # In seconds
+FORCE_FLUSH_INTERVAL = 840 # In seconds
 
 
 class kafkaConsumerToS3:
     def __init__(self):
         # Confluent consumer
         self.consumer = Consumer(CONSUMER_CONF)
-        self.consumer.subscribe([TOPIC])
 
         # AWS S3
         self.s3 = boto3.client("s3", region_name=AWS_REGION)
@@ -118,22 +117,24 @@ class kafkaConsumerToS3:
         self.consumer.close()
         self.running = False
 
-    def consumer_metadata(self):
-        metadata = self.consumer.list_topics(timeout=10)
-        logger.info("Connected to cluster:")
-        logger.info(f"Cluster ID: {metadata.cluster_id}")
-        logger.info(f"Brokers: {metadata.brokers}")
-
-        logger.info("\nAvailable topics:")
-        for t in metadata.topics.keys():
-            logger.info(f" - {t}")
-
     def run(self):
+        # Check if topic has been created
+        # Topic created by producer
+        metadata = self.consumer.list_topics(timeout=10)
+        while True:
+            if TOPIC in metadata.topics:
+                logger.info(f"Topic '{TOPIC}' found. Subscribing...")
+                self.consumer.subscribe([TOPIC])
+                break
+            else:
+                logger.info(f"Topic: '{TOPIC}' not found yet. Waiting for producer to create it.")
+                time.sleep(5)
+
+        # Poll message
         try:
             while self.running:
                 try:
                     msg = self.consumer.poll(1.0)
-                    self.consumer_metadata() # Check metadata
                     if msg is None:
                         continue
                     if msg.error():

@@ -1,6 +1,6 @@
 numpy
 pandas
-kafka-python
+confluent_kafka
 requests
 python-dotenv
 pyarrow

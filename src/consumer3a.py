@@ -66,7 +66,7 @@ class kafkaConsumerToS3:
     def _upload_to_s3(self, messages, window_start, symbol):
         if not messages:
             return
-        now = datetime.now(timezone.utc).strftime('%H:%M:%S.%f')[:-3]
+        now = datetime.now(timezone.utc).strftime('%H:%M:%S%f')[:-3]
         key = f"{symbol}/{window_start.strftime('%Y-%m-%d_%H:%M')}/{now}.jsonl"
         buffer = io.BytesIO()
 

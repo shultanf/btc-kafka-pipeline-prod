@@ -67,10 +67,11 @@ class kafkaConsumerToS3:
         if not messages:
             return
         key = f"{symbol}/{window_start.strftime('%Y%m%dT%H%M')}.jsonl"
-        buffer = io.StringIO()
+        buffer = io.BytesIO()
 
         for msg in messages:
-            buffer.write(json.dumps(msg) + "\n")
+            buffer.write(json.dumps(msg).encode("utf-8"))
+            buffer.write(b"\n")
         buffer.seek(0)
         try:
             self.s3.upload_fileobj(buffer, BUCKET, key)
@@ -120,10 +121,10 @@ class kafkaConsumerToS3:
     def run(self):
         # Check if topic has been created
         # Topic created by producer
-        metadata = self.consumer.list_topics(timeout=10)
         while True:
+            metadata = self.consumer.list_topics(timeout=10)
             if TOPIC in metadata.topics:
-                logger.info(f"Topic '{TOPIC}' found. Subscribing...")
+                logger.info(f"Topic: '{TOPIC}' found. Subscribing...")
                 self.consumer.subscribe([TOPIC])
                 break
             else:
@@ -148,7 +149,7 @@ class kafkaConsumerToS3:
                     except Exception as e:
                         logger.error("Failed to deserialize message.", exc_info=e)
 
-                    ts = datetime.fromisoformat(record["date"])
+                    ts = datetime.fromisoformat(record["datetimeIso"])
                     ts_floored = self._get_window_start(ts)
                     symbol = record["slug"]
 

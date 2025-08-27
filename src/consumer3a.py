@@ -66,7 +66,8 @@ class kafkaConsumerToS3:
     def _upload_to_s3(self, messages, window_start, symbol):
         if not messages:
             return
-        key = f"{symbol}/{window_start.strftime('%Y%m%dT%H%M')}.jsonl"
+        now = datetime.now(timezone.utc).strftime('%H:%M:%S.%f')[:-3]
+        key = f"{symbol}/{window_start.strftime('%Y-%m-%d_%H:%M')}/{now}.jsonl"
         buffer = io.BytesIO()
 
         for msg in messages:
@@ -161,7 +162,7 @@ class kafkaConsumerToS3:
                     logger.error("Error while consuming messages", exc_info=e)
 
         except Exception as e:
-            logger.error("Fata error in consumer loop.", exc_info=e)
+            logger.error("Fatal error in consumer loop.", exc_info=e)
         finally:
             logger.info("Closing consumer gracefully...")
             self._flush_expire_windows(force=True)

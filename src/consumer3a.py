@@ -34,7 +34,7 @@ S3_PREFIX = ""
 # Batching Config
 WINDOW_MINUTES = 15 # In minutes
 FLUSH_DELAY = 60 # In seconds
-FORCE_FLUSH_INTERVAL = 840 # In seconds
+FORCE_FLUSH_INTERVAL = 120 # In seconds
 
 
 class kafkaConsumerToS3:

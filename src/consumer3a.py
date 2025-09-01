@@ -69,7 +69,7 @@ class kafkaConsumerToS3:
             return
         first_index_ts = datetime.fromisoformat(messages[0]["datetimeIso"]) #.strftime("%H:%M%S%f")[:-3]
         last_index_ts = datetime.fromisoformat(messages[-1]["datetimeIso"]) #.strftime("%H:%M%S%f")[:-3]
-        diff = first_message_ts - last_index_ts
+        diff = first_index_ts - last_index_ts
 
         if int(diff.total_seconds()) <= 900:
             pass
@@ -85,7 +85,6 @@ class kafkaConsumerToS3:
         minute = first_index_ts.minute
         unq = secrets.token_hex(4)
         messages_len = len(messages)
-        first_message_ts = first_message_ts.strftime("%H:%M%S%f")[:-3]
         last_hour = last_index_ts.hour
         last_minute = last_index_ts.minute
 

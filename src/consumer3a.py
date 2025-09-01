@@ -67,8 +67,8 @@ class kafkaConsumerToS3:
     def _upload_to_s3(self, messages, window_start, symbol):
         if not messages:
             return
-        first_index_ts = datetime.isoformat(messages[0]["datetimeIso"]) #.strftime("%H:%M%S%f")[:-3]
-        last_index_ts = datetime.isoformat(messages[-1]["datetimeIso"]) #.strftime("%H:%M%S%f")[:-3]
+        first_index_ts = datetime.fromisoformat(messages[0]["datetimeIso"]) #.strftime("%H:%M%S%f")[:-3]
+        last_index_ts = datetime.fromisoformat(messages[-1]["datetimeIso"]) #.strftime("%H:%M%S%f")[:-3]
         diff = first_message_ts - last_index_ts
 
         if int(diff.total_seconds()) <= 900:
@@ -77,6 +77,7 @@ class kafkaConsumerToS3:
             logger.warning("Crypto price timestamp difference between batch messages is too wide (>900sec).",
                            extra={"Index [0]":str(messages[0]), "Index [-1]":str(messages[-1])})
             pass
+
         year = first_index_ts.year
         month = first_index_ts.month
         day = first_index_ts.day

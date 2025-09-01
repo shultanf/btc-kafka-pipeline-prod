@@ -88,7 +88,7 @@ class kafkaConsumerToS3:
         last_hour = last_index_ts.hour
         last_minute = last_index_ts.minute
 
-        filename = f"len={messages_len}_{hour}:{minute}-{last_hour}:{last_minute}_unq={unq}"
+        filename = f"len={messages_len}_first={hour}:{minute}_last={last_hour}:{last_minute}_unq={unq}"
         key = f"{symbol}/year={year}/month={month}/day={day}/{filename}.jsonl"
         
         # now = datetime.now(timezone.utc).strftime('%H:%M:%S%f')[:-3]

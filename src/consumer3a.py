@@ -6,6 +6,7 @@ import time
 import threading
 import io
 import os
+import secrets
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 from confluent_kafka import Consumer, KafkaError, KafkaException
@@ -66,8 +67,32 @@ class kafkaConsumerToS3:
     def _upload_to_s3(self, messages, window_start, symbol):
         if not messages:
             return
-        now = datetime.now(timezone.utc).strftime('%H:%M:%S%f')[:-3]
-        key = f"{symbol}/{window_start.strftime('%Y-%m-%d_%H:%M')}/{now}.jsonl"
+        first_index_ts = datetime.isoformat(messages[0]["datetimeIso"]) #.strftime("%H:%M%S%f")[:-3]
+        last_index_ts = datetime.isoformat(messages[-1]["datetimeIso"]) #.strftime("%H:%M%S%f")[:-3]
+        diff = first_message_ts - last_index_ts
+
+        if int(diff.total_seconds()) <= 900:
+            pass
+        else:
+            logger.warning("Crypto price timestamp difference between batch messages is too wide (>900sec).",
+                           extra={"Index [0]":str(messages[0]), "Index [-1]":str(messages[-1])})
+            pass
+        year = first_index_ts.year
+        month = first_index_ts.month
+        day = first_index_ts.day
+        hour = first_index_ts.hour
+        minute = first_index_ts.minute
+        unq = secrets.token_hex(4)
+        messages_len = len(messages)
+        first_message_ts = first_message_ts.strftime("%H:%M%S%f")[:-3]
+        last_hour = last_index_ts.hour
+        last_minute = last_index_ts.minute
+
+        filename = f"len={messages_len}_{hour}:{minute}-{last_hour}:{last_minute}_unq={unq}"
+        key = f"{symbol}/year={year}/month={month}/day={day}/{filename}.jsonl"
+        
+        # now = datetime.now(timezone.utc).strftime('%H:%M:%S%f')[:-3]
+        # key = f"{symbol}/{window_start.strftime('%Y-%m-%d_%H:%M')}/{now}.jsonl"
         buffer = io.BytesIO()
 
         for msg in messages:

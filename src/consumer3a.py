@@ -152,6 +152,8 @@ class kafkaConsumerToS3:
             metadata = self.consumer.list_topics(timeout=10)
             if TOPIC in metadata.topics:
                 logger.info(f"Topic: '{TOPIC}' found. Subscribing...")
+                logger.info(f"Starting periodic flush...",
+                            extra={"FORCE_FLUSH_INTERVAL":FORCE_FLUSH_INTERVAL})
                 self.consumer.subscribe([TOPIC])
                 self.flush_thread.start() # Start periodic flush
                 break

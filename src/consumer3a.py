@@ -54,7 +54,7 @@ class kafkaConsumerToS3:
         self.lock = threading.Lock()
 
         self.flush_thread = threading.Thread(target=self._periodic_flush, daemon=True) # Runs in the background
-        self.flush_thread.start()
+        
 
         # Flush on shutdown
         signal.signal(signal.SIGINT, self._shutdown)
@@ -131,6 +131,7 @@ class kafkaConsumerToS3:
         logger.info("Expired windows flushed.")
 
     def _periodic_flush(self):
+
         while self.running:
             time.sleep(FORCE_FLUSH_INTERVAL)
             logger.info("Periodic flush triggered.")
@@ -152,6 +153,7 @@ class kafkaConsumerToS3:
             if TOPIC in metadata.topics:
                 logger.info(f"Topic: '{TOPIC}' found. Subscribing...")
                 self.consumer.subscribe([TOPIC])
+                self.flush_thread.start() # Start periodic flush
                 break
             else:
                 logger.info(f"Topic: '{TOPIC}' not found yet. Waiting for producer to create it.")

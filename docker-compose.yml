@@ -40,8 +40,7 @@ services:
 
   consumer:
     build: .
-    # command: sh -c "wait-broker.sh && python src/s3_client.py && python src/consumer.py"
-    command: sh -c "python src/consumer3a.py"
+    command: sh -c "python src/consumer.py"
     volumes:
       - ./.env:/app/.env
       - kafka-services-logs:/app/logs

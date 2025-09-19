@@ -28,7 +28,11 @@ Containerization:
 - **Docker**: containerized Kafka Consumer and Broker on the EC2 Instance.
 
 ### Architecture
-<img width="1340" height="500" alt="btc-dashboard-diagram docs" src="https://github.com/user-attachments/assets/c9027c1a-617b-44cb-a166-fc3be96155f0" />
+#### High-level architecture
+<img width="821" height="370" alt="dashboard-diagram high-level" src="https://github.com/user-attachments/assets/fab00fb8-7f34-4fbc-b4a9-48cb171f5018" />
+
+#### Techincal architecture
+<img width="1340" height="500" alt="dashboard-diagram technical" src="https://github.com/user-attachments/assets/cafebb53-670f-46db-9b42-8804ea519c68" />
 
 ## 📸 Dashboard Preview
 [Grafana Snapshot ](https://bit.ly/BitcoinDashboardSF)

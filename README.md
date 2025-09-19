@@ -28,17 +28,36 @@ Containerization:
 - **Docker**: containerized Kafka Consumer and Broker on the EC2 Instance.
 
 ### Architecture
-#### High-level architecture
+#### High-level diagram
 <img width="821" height="370" alt="dashboard-diagram high-level" src="https://github.com/user-attachments/assets/fab00fb8-7f34-4fbc-b4a9-48cb171f5018" />
 
-#### Techincal architecture
+#### Techincal diagram
 <img width="1340" height="500" alt="dashboard-diagram technical" src="https://github.com/user-attachments/assets/cafebb53-670f-46db-9b42-8804ea519c68" />
 
 ## 📸 Dashboard Preview
 [Grafana Snapshot ](https://bit.ly/BitcoinDashboardSF)
 <img width="1440" height="726" alt="Screen Shot of the Dashboard" src="https://github.com/user-attachments/assets/dcaaac7b-ae87-4b04-9577-09ed1f62c106" />
 ## 📂 Repository Contents
+```
+btc-kafka-pipeline-prod/
+│── src/
+  │──consumer.py
+│── .dockerignore
+│── .env.example
+│── .gitignore
+│── Dockerfile
+│── README.md
+│── docker-compose.yml
+│── requirements.txt
+```
 ## 🌟 Use Cases
+1. Import the provided Grafana dashboard JSON.
+2. Connect to your PostgreSQL instance.
+3. Explore metrics and set custom alerts.
 ## ⚠️ Notes
+- This documentation only describes the project design and functionality. It **does not** show the step-by-step guide to build the project.
+- Tools and services outside this repository is needed to build the complete project.
+- The main goal of this project is to showcase my data engineering skills.
 ## 📜 License
+MIT License
 
